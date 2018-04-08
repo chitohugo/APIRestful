@@ -16,7 +16,7 @@ class Product extends Model
         'quantify',
         'status',
         'image',
-        seller_id,
+        'seller_id',
     ];
 
     public function estaDisponible()
