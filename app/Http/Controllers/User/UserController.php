@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\User;
 
 use App\User;
+use function bcrypt;
+use function dd;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\ApiController;
+use function response;
 
-class UserController extends Controller
+class UserController extends ApiController
 {
     /**
      * Display a listing of the resource.
@@ -17,17 +20,8 @@ class UserController extends Controller
     {
         $users = User::all();
 
-        return $users;
-    }
+        return $this->showAll($users);
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
     }
 
     /**
@@ -38,7 +32,23 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $rules = [
+            'name' => 'required',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|confirmed|min:6|max:10'
+        ];
+
+        $this->validate($request, $rules);
+
+        $fields = $request->all();
+        $fields['password'] = bcrypt($request->password);
+        $fields['verified'] = User::USUARIO_NO_VERIFICADO;
+        $fields['verification_token'] = User::generarVerificationToken();
+        $fields['admin'] = User::USUARIO_REGULAR;
+
+        $user = User::create($fields);
+
+        return response()->json(['data' => $user], 201);
     }
 
     /**
@@ -49,18 +59,9 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        //
-    }
+        $user = User::findOrFail($id);
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
+        return $this->showOne($user);
     }
 
     /**
@@ -72,7 +73,41 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        $user = User::findOrFail($id);
+
+        $rules = [
+            'email' => 'email|unique:users,email,' . $user->id,
+            'password' => 'confirmed|min:6|max:10',
+            'admin' => 'in:' . User::USUARIO_REGULAR . ',' . User::USUARIO_REGULAR,
+        ];
+
+        $this->validate($request, $rules);
+
+        if ($request->has('name')){
+            $user->name = $request->name;
+        }
+        if ($request->has('email') && $user->email != $request->email){
+                $user->verified = User::USUARIO_NO_VERIFICADO;
+                $user->verification_token = User::generarVerificationToken();
+                $user->email = $request->email;
+        }
+        if ($request->has('password')){
+            $user->password = bcrypt($request->password);
+        }
+        if ($request->has('admin')){
+            if (!$user->esVerificado()){
+                return  $this->errorResponse('Unicamente los usuarios verificados pueden cambiar su valor de administrador', 409);
+            }
+            $user->admin =$request->admin;
+        }
+        if (!$user->isDirty()){
+            return $this->errorResponse('Se deben especificar al menos un valor diferente para actualizar', 422);
+
+        }
+
+        $user->save();
+
+        return response()->json(['data' => $user],200);
     }
 
     /**
@@ -83,6 +118,10 @@ class UserController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $user = User::findOrFail($id);
+
+        $user->delete();
+
+        return response()->json(['data' => $user], 200);
     }
 }

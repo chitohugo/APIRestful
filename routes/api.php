@@ -18,9 +18,9 @@ use Illuminate\Http\Request;
 });*/
 
 
-Route::resource('buyer', 'Buyer\BuyerController', ['only' => ['index', 'show']]);
+Route::resource('buyers', 'Buyer\BuyerController', ['only' => ['index', 'show']]);
 Route::resource('category', 'Category\CategoryController', ['except' => ['create', 'edit']]);
 Route::resource('product', 'Product\ProductController', ['only' => ['index', 'show']]);
 Route::resource('transaction', 'Transaction\TransactionController', ['only' => ['index', 'show']]);
-Route::resource('seller', 'Seller\SellerController', ['only' => ['index', 'show']]);
+Route::resource('sellers', 'Seller\SellerController', ['only' => ['index', 'show']]);
 Route::resource('users', 'User\UserController', ['except' => ['create', 'edit']]);
